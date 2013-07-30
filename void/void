@@ -1,0 +1,342 @@
+wall = paintutils.loadImage("wall")
+
+lastclick = os.clock()
+
+pressed = false
+posx = 0
+grabx = 0
+
+windows = {}
+windowid = 1
+deleteWindowid = 0
+
+voidmenu = {}
+voidmenu['active'] = false
+voidmenu['width'] = 4
+
+menus = {}
+menuid = 1
+
+order = {}
+
+function drawWallpaper()
+	paintutils.drawImage(wall, 11, 6)
+end
+
+function makeWindow(width, height, name, xPos, yPos)
+	windows[windowid] = {}
+	windows[windowid]["width"] = width
+	windows[windowid]["height"] = height
+	windows[windowid]["xPos"] = xPos
+	windows[windowid]["yPos"] = yPos
+	windows[windowid]["name"] = name
+	windows[windowid]["minimised"] = false
+	ca = table.getn(windows)
+	order[ca + 1] = windowid
+	orderTop(windowid)
+	windowid = windowid + 1
+	return windowid - 1
+end
+
+function orderTop(id)
+	new = {}
+	count = 1
+	for ik, data in pairs(windows) do
+		if(ik ~= id)then
+			new[count] = ik
+			count = count + 1
+		end
+	end
+	new[count] = id
+	order = new
+end
+
+function drawWindow(id)
+	window = windows[id]
+	if(window['minimised'] == false)then
+		term.setBackgroundColor(colors.blue)
+		term.setTextColor(colors.white)
+		term.setCursorPos(window["xPos"], window["yPos"])
+		for h = 1, window['width'] + 1 do
+			term.write(" ")
+		end
+		term.setCursorPos(window['xPos'] + 3, window['yPos'])
+		term.write(window['name'])
+		term.setBackgroundColor(colors.red)
+		term.setCursorPos(window["xPos"], window["yPos"])
+		term.write("X")
+		term.setBackgroundColor(colors.lime)
+		term.setCursorPos(window["xPos"] + 1, window["yPos"])
+		term.write("_")
+		term.setBackgroundColor(colors.lightGray)
+		for x = window['xPos'], window['xPos'] + window['width'] do
+			for y = window['yPos'] + 1, window['yPos'] + window['height'] do
+				term.setCursorPos(x, y)
+				term.write(" ")
+			end
+		end
+	end
+end
+
+function drawWindows()
+	if next(windows) == nil then else
+		term.setBackgroundColor(colors.black)
+		for oid, idm in pairs(order) do
+			drawWindow(idm)
+		end
+		term.setBackgroundColor(colors.black)
+	end
+end
+
+function checkWindows(xPos, yPos)
+	if table.getn(windows) >= 1 then 
+		for oid, id in pairs(order) do
+			data = windows[id]
+			if(data['minimised'] == false)then
+				if(xPos >= data['xPos'] + 2 and xPos <= data['xPos'] + data['width'])then
+					if(yPos == data['yPos'])then
+						orderTop(id)
+						return id
+					end
+				elseif(xPos == data['xPos'] and yPos == data['yPos'])then
+					orderTop(id)
+					deleteWindowid = id
+					return id
+				elseif(xPos == data['xPos'] + 1 and yPos == data['yPos'])then
+					data['minimised'] = true
+					return id
+				end
+			end
+		end
+	end
+	return 0
+end
+
+function drawTaskBar()
+	w, h = term.getSize()
+	term.setBackgroundColor(colors.gray)
+	for x = 1, w do
+		term.setCursorPos(x, h)
+		term.write(" ")
+	end
+	term.setTextColor(colors.cyan)
+	if(voidmenu['active'] == false)then
+		term.setBackgroundColor(colors.orange)
+	else
+		total = table.getn(menus)
+		count = total
+		term.setBackgroundColor(colors.white)
+		term.setTextColor(colors.black)
+		for id, data in pairs(menus) do
+			if(data['flash'] == true)then
+				term.setBackgroundColor(colors.red)
+			else
+				term.setBackgroundColor(colors.white)
+			end
+			term.setCursorPos(1, h - total + count - 1)
+			term.write(data['name'])
+			if(string.len(data['name']) < voidmenu['width'])then
+				for wx = string.len(data['name']) + 1, voidmenu['width'] do
+					term.setCursorPos(wx, h - total + count - 1)
+					term.write(" ")
+				end
+			end
+			count = count - 1
+		end
+		term.setTextColor(colors.cyan)
+		term.setBackgroundColor(colors.red)
+	end	
+	term.setCursorPos(1, h)
+	term.write("Void")
+	position = 6
+	for id, data in pairs(windows) do
+		if data['minimised'] == true then
+			term.setCursorPos(position, h)
+			term.setBackgroundColor(colors.blue)
+			term.write(data['name'])
+			position = position + string.len(data['name']) + 1
+		end
+	end
+end
+
+function checkTaskBar(xPos, yPos)
+	w, h = term.getSize()
+	if(yPos == h)then
+		if(xPos <= 4)then
+			voidmenu['active'] = not voidmenu['active']
+			return true
+		else
+			position = 6
+			for id, data in pairs(windows) do
+				if data['minimised'] == true then
+					if(xPos >= position and xPos <= position + string.len(data['name']) - 1)then
+						data['minimised'] = false
+						return true
+					end
+					position = position + string.len(data['name']) + 1
+				end
+			end
+		end
+	else
+		if(voidmenu['active'] == true)then
+			total = table.getn(menus)
+			count = total
+			if(xPos <= voidmenu['width'] and yPos >= h - count - 1 and yPos <= h - 1)then
+				for id, data in pairs(menus) do
+					if(yPos == h - total + count - 1)then
+						activateMenu(id)
+						return true
+					end
+					count = count - 1
+				end
+			end
+		end
+	end
+	return false
+end
+
+function drawScreen()
+	term.clear()
+	term.setBackgroundColor(colors.black)
+	drawWallpaper()
+	term.setBackgroundColor(colors.black)
+	drawWindows()
+	term.setBackgroundColor(colors.black)
+	drawTaskBar()
+	term.setBackgroundColor(colors.black)
+end
+
+function deleteWindow(id)
+	table.remove(order)
+	windows[id] = nil
+	return true
+end
+
+function getWindowId(name)
+	for id, data in pairs(windows) do
+		if(data['name'] == name)then
+			return id
+		end
+	end
+	return false
+end
+
+function getWindowSize(id)
+	if windows[id] ~= nil then
+		return windows[id]['width'], windows[id]['height']
+	end
+	return false
+end
+
+function getWindowPos(id)
+	if windows[id] ~= nil then
+		return windows[id]['xPos'], windows[id]['yPos'] + 1
+	end
+	return false
+end
+
+function addMenu(name, func)
+	menus[menuid] = {}
+	menus[menuid]["name"] = name
+	menus[menuid]["func"] = func
+	menus[menuid]["flash"] = false
+	if(voidmenu['width'] < string.len(name))then
+		voidmenu['width'] = string.len(name)
+	end
+	menuid = menuid + 1
+end
+
+function activateMenu(id)
+	print(id)
+	menus[id]['flash'] = true
+	drawScreen()
+	sleep(0.2)
+	menus[id]['flash'] = false
+	drawScreen()
+	menus[id]['func']()
+end
+
+function checkIcons()
+	-- Todo
+end
+
+function textBox(question)
+	if textBox == false then
+		return true
+	else
+		return false
+	end
+end
+
+function loop()
+	while true do
+		if(deleteWindowid > 0)then 
+			deleteWindow(deleteWindowid)
+			deleteWindowid = 0 
+		end
+		drawScreen()
+		event, button, xPos, yPos = os.pullEvent()
+		w, h = term.getSize()
+		if event == "mouse_click" or event == "monitor_touch" then
+			check = 0
+			if(checkTaskBar(xPos, yPos) == false)then
+				check = checkWindows(xPos, yPos)
+			end
+			if(check > 0)then
+				pressed = check
+				grabx = xPos - windows[pressed]['xPos']
+			else
+				pressed = 0
+			end
+			if(os.clock() - lastclick >= .05 and os.clock() - lastclick <= 0.5)then
+				checkIcons()
+			end
+			lastclick = os.clock()
+		end
+		if event == "mouse_drag" then
+			if(pressed > 0)then
+				windows[pressed]['xPos'] = xPos - grabx
+				if(yPos < h)then windows[pressed]['yPos'] = yPos end
+			end
+		end
+	end
+end
+
+function quit()
+	term.clear()
+	term.setCursorPos(1, 1)
+	term.setBackgroundColor(colors.black)
+	term.setTextColor(colors.white)
+	print("Restart the computer to go back! (CTRL + R)")
+	error()
+end
+
+function lua()
+	term.clear()
+	term.setCursorPos(1, 1)
+	term.setBackgroundColor(colors.black)
+	term.setTextColor(colors.white)
+	shell.run("lua")
+	term.setCursorBlink(false)
+end
+
+----------------
+-- Population --
+----------------
+
+addMenu("Exit", quit)
+addMenu("Shutdown", os.shutdown)
+addMenu("Restart", os.reboot)
+addMenu("LUA", lua)
+
+function addotherwindow()
+	makeWindow(10, 6, "Testing", 2, 10)
+end
+
+addMenu("Add window", addotherwindow)
+
+----------------
+----- Run ------
+----------------
+
+loop()
