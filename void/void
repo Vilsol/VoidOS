@@ -1,23 +1,18 @@
 wall = paintutils.loadImage("wall")
-
 lastclick = os.clock()
-
 pressed = false
 posx = 0
 grabx = 0
-
 windows = {}
 windowid = 1
 deleteWindowid = 0
-
 voidmenu = {}
 voidmenu['active'] = false
 voidmenu['width'] = 4
-
 menus = {}
 menuid = 1
-
 order = {}
+textBoxOn = false
 
 function drawWallpaper()
 	paintutils.drawImage(wall, 11, 6)
@@ -256,13 +251,54 @@ function activateMenu(id)
 	menus[id]['func']()
 end
 
+function makeIcon()
+	-- Todo
+end
+
+function loadIcons()
+	-- Todo
+end
+
+function drawIcon(id)
+	-- Todo
+end
+
+function drawIcons()
+	-- Todo
+end
+
 function checkIcons()
 	-- Todo
 end
 
 function textBox(question)
-	if textBox == false then
-		return true
+	if textBoxOn == false then
+		w, h = term.getSize()
+		textBoxOn = true
+		term.setBackgroundColor(colors.lightGray)
+		term.setTextColor(colors.orange)
+		width = string.len(question) + 2
+		start = w / 2 - width / 2
+		for x = start, start + width - 1 do
+			for y = 5, 9 do
+				term.setCursorPos(x, y)
+				term.write(" ")
+			end
+		end
+		term.setCursorPos(start + 1, 6)
+		term.write(question)
+		for x = start + 1, start + width - 2 do
+			term.setBackgroundColor(colors.white)
+			term.setCursorPos(x, 8)
+			term.write(" ")
+		end
+		term.setCursorPos(start + 1, 8)
+		term.setCursorBlink(true)
+		answer = read()
+		term.setCursorBlink(false)
+		term.setBackgroundColor(colors.black)
+		textBoxOn = false
+		return answer
 	else
 		return false
 	end
@@ -320,6 +356,11 @@ function lua()
 	term.setCursorBlink(false)
 end
 
+function edit()
+	file = textBox("Enter file name:")
+	shell.run("edit", file)
+end
+
 ----------------
 -- Population --
 ----------------
@@ -328,6 +369,7 @@ addMenu("Exit", quit)
 addMenu("Shutdown", os.shutdown)
 addMenu("Restart", os.reboot)
 addMenu("LUA", lua)
+addMenu("Edit", edit)
 
 function addotherwindow()
 	makeWindow(10, 6, "Testing", 2, 10)
