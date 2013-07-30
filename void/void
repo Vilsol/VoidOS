@@ -1,4 +1,4 @@
-wall = paintutils.loadImage("wall")
+wall = paintutils.loadImage("/void/wall")
 lastclick = os.clock()
 pressed = false
 posx = 0
