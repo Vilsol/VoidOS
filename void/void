@@ -31,6 +31,10 @@ function checkUpdate()
 	return false
 end
 
+--------------------------
+-- Windows and Taskbars --
+--------------------------
+
 function drawWallpaper()
 	paintutils.drawImage(wall, 11, 6)
 end
@@ -272,6 +276,10 @@ function activateMenu(id)
 	voids[id]['func']()
 end
 
+-----------
+-- Icons --
+-----------
+
 function makeIcon()
 	-- Todo
 end
@@ -468,6 +476,10 @@ function addMenuItem(text, menuid, func)
 	end
 end
 
+-------------------
+-- Loops'n'Stuff --
+-------------------
+
 function loop()
 	drawScreen()
 	while true do
@@ -564,6 +576,10 @@ function cleanScreen()
 	term.setTextColor(colors.white)
 	term.clear()
 end
+
+----------------------
+-- Custom Functions --
+----------------------
 
 function quit()
 	cleanScreen()
