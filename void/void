@@ -9,10 +9,17 @@ deleteWindowid = 0
 voidmenu = {}
 voidmenu['active'] = false
 voidmenu['width'] = 4
-menus = {}
-menuid = 1
+voids = {}
+voidid = 1
 order = {}
 textBoxOn = false
+menus = {}
+menui = {}
+menuID = 1
+menuiID = 1
+currentMenuPos = 1
+selectedMenu = -1
+flashMenuItemID = -1
 
 function checkUpdate()
 	versionFile = fs.open("/void/version", "r")
@@ -128,11 +135,11 @@ function drawTaskBar()
 	if(voidmenu['active'] == false)then
 		term.setBackgroundColor(colors.orange)
 	else
-		total = table.getn(menus)
+		total = table.getn(voids)
 		count = total
 		term.setBackgroundColor(colors.white)
 		term.setTextColor(colors.black)
-		for id, data in pairs(menus) do
+		for id, data in pairs(voids) do
 			if(data['flash'] == true)then
 				term.setBackgroundColor(colors.red)
 			else
@@ -184,10 +191,10 @@ function checkTaskBar(xPos, yPos)
 		end
 	else
 		if(voidmenu['active'] == true)then
-			total = table.getn(menus)
+			total = table.getn(voids)
 			count = total
 			if(xPos <= voidmenu['width'] and yPos >= h - count - 1 and yPos <= h - 1)then
-				for id, data in pairs(menus) do
+				for id, data in pairs(voids) do
 					if(yPos == h - total + count - 1)then
 						activateMenu(id)
 						return true
@@ -206,6 +213,8 @@ function drawScreen()
 	drawWallpaper()
 	term.setBackgroundColor(colors.black)
 	drawWindows()
+	term.setBackgroundColor(colors.black)
+	drawMenus()
 	term.setBackgroundColor(colors.black)
 	drawTaskBar()
 	term.setBackgroundColor(colors.black)
@@ -242,25 +251,25 @@ function getWindowPos(id)
 	return false
 end
 
-function addMenu(name, func)
-	menus[menuid] = {}
-	menus[menuid]["name"] = name
-	menus[menuid]["func"] = func
-	menus[menuid]["flash"] = false
+function addVoid(name, func)
+	voids[voidid] = {}
+	voids[voidid]["name"] = name
+	voids[voidid]["func"] = func
+	voids[voidid]["flash"] = false
 	if(voidmenu['width'] < string.len(name))then
 		voidmenu['width'] = string.len(name)
 	end
-	menuid = menuid + 1
+	voidid = voidid + 1
 end
 
 function activateMenu(id)
 	print(id)
-	menus[id]['flash'] = true
+	voids[id]['flash'] = true
 	drawScreen()
 	sleep(0.2)
-	menus[id]['flash'] = false
+	voids[id]['flash'] = false
 	drawScreen()
-	menus[id]['func']()
+	voids[id]['func']()
 end
 
 function makeIcon()
@@ -316,19 +325,165 @@ function textBox(question)
 	end
 end
 
+----------------
+--  Menu API  --
+----------------
+
+function drawMenus()
+	currentMenuPos = 1
+	w, h = term.getSize()
+	term.setBackgroundColor(colors.gray)
+	for k = 1, w do
+		term.setCursorPos(k, 1)
+		term.write(" ")
+	end
+	for id, data in pairs(menus) do
+		drawMenu(id)
+	end
+	currentMenuPos = 1
+end
+
+function checkMenus(posx, posy)
+	currentMenuPos = 1
+	for id, data in pairs(menus) do
+		if(selectedMenu == id)then
+			if(posx >= currentMenuPos and posx <= currentMenuPos + data['width'])then
+				if(posy >= 1 and posy <= 1 + data['menuitems'])then
+					if(posy > 1)then
+						menuitempos = 1
+						for mid, mdata in pairs(menui) do
+							if(mdata['menuid'] == id)then
+								if(posy - 1 == menuitempos)then
+									clickMenuItem(mid)
+									return true
+								end
+								menuitempos = menuitempos + 1
+							end
+						end
+					else
+						clickMenu(id)
+						return true
+					end
+				end
+			end
+		else
+			if(posx >= currentMenuPos and posx <= currentMenuPos + data['width'])then
+				if(posy == 1)then
+					clickMenu(id)
+					return true
+				end
+			end
+		end
+		currentMenuPos = data['width'] + currentMenuPos + 2
+	end
+	return false
+end
+
+function clickMenu(ID)
+	currentMenuPos = 1
+	if(selectedMenu == ID)then
+		selectedMenu = -1
+	else
+		selectedMenu = ID
+	end
+	drawScreen()
+end
+
+function clickMenuItem(ID)
+	currentMenuPos = 1
+	mi = menui[ID]
+	flashMenuItem(ID)
+	mi['func'](ID)
+end
+
+function flashMenuItem(ID)
+	flashMenuItemID = ID
+	drawMenus()
+	sleep(0.2)
+	flashMenuItemID = -1
+	drawMenus()
+end
+
+function drawMenu(ID)
+	menu = menus[ID]
+	if(selectedMenu == ID)then
+		term.setBackgroundColor(colors.red)
+	else
+		term.setBackgroundColor(colors.cyan)
+	end
+	term.setTextColor(colors.orange)
+	term.setCursorPos(currentMenuPos, 1)
+	term.write(menu['text'])
+	if(menu['width'] >= string.len(menu['text']))then
+		for k = currentMenuPos + string.len(menu['text']), currentMenuPos + string.len(menu['text']) + menu['width'] - string.len(menu['text']) do
+			term.setCursorPos(k, 1)
+			term.write(" ")
+		end
+	end
+	if(selectedMenu == ID)then
+		menuitempos = 1
+		for mid, mdata in pairs(menui) do
+			if(mdata['menuid'] == ID)then
+				term.setCursorPos(currentMenuPos, 1 + menuitempos)
+				term.setTextColor(colors.black)
+				term.setBackgroundColor(colors.white)
+				if(flashMenuItemID == mid)then
+					term.setBackgroundColor(colors.red)
+				end
+				term.write(mdata['text'])
+				if(menu['width'] >= string.len(mdata['text']))then
+					for k = currentMenuPos + string.len(mdata['text']), currentMenuPos + string.len(mdata['text']) + menu['width'] - string.len(mdata['text']) do
+						term.setCursorPos(k, 1 + menuitempos)
+						term.write(" ")
+					end
+				end
+				menuitempos = menuitempos + 1
+			end
+		end
+	end
+	currentMenuPos = currentMenuPos + menu['width'] + 2
+end
+
+function addMenu(text)
+	menus[menuID] = {}
+	menus[menuID]['width'] 			= string.len(text)
+	menus[menuID]['text'] 			= text
+	menus[menuID]['menuitems']		= 0
+	menuID = menuID + 1
+	return menuID - 1
+end
+
+function addMenuItem(text, menuid, func)
+	if(menus[menuid] ~= nil)then
+		menui[menuiID] = {}
+		menui[menuiID]['text'] 			= text
+		menui[menuiID]['menuid'] 		= menuid
+		menui[menuiID]['func']			= func
+		menuiID = menuiID + 1
+		if(menus[menuid]['width'] < string.len(text))then
+			menus[menuid]['width'] = string.len(text) - 1
+		end
+		menus[menuid]['menuitems'] = menus[menuid]['menuitems'] + 1
+		return menuiID - 1
+	end
+end
+
 function loop()
 	drawScreen()
 	while true do
 		if(deleteWindowid > 0)then 
 			deleteWindow(deleteWindowid)
 			deleteWindowid = 0 
+			drawScreen()
 		end
 		event, button, xPos, yPos = os.pullEvent()
 		w, h = term.getSize()
 		if event == "mouse_click" or event == "monitor_touch" then
 			check = 0
 			if(checkTaskBar(xPos, yPos) == false)then
-				check = checkWindows(xPos, yPos)
+				if(checkMenus(xPos, yPos) == false)then
+					check = checkWindows(xPos, yPos)
+				end
 			end
 			if(check > 0)then
 				pressed = check
@@ -345,7 +500,7 @@ function loop()
 		if event == "mouse_drag" then
 			if(pressed > 0)then
 				windows[pressed]['xPos'] = xPos - grabx
-				if(yPos < h)then windows[pressed]['yPos'] = yPos end
+				if(yPos < h and yPos > 1)then windows[pressed]['yPos'] = yPos end
 				drawScreen()
 			end
 		end
@@ -403,50 +558,69 @@ function run()
 	end
 end
 
-function quit()
-	term.clear()
+function cleanScreen()
 	term.setCursorPos(1, 1)
 	term.setBackgroundColor(colors.black)
 	term.setTextColor(colors.white)
+	term.clear()
+end
+
+function quit()
+	cleanScreen()
 	print("Restart the computer to go back! (CTRL + R)")
 	error()
 end
 
 function lua()
-	term.clear()
-	term.setCursorPos(1, 1)
-	term.setBackgroundColor(colors.black)
-	term.setTextColor(colors.white)
+	cleanScreen()
 	shell.run("lua")
 	term.setCursorBlink(false)
 end
 
 function edit()
 	file = textBox("Enter file name:")
+	cleanScreen()
 	shell.run("edit", file)
 end
 
 function paint()
 	file = textBox("Enter file name:")
+	cleanScreen()
 	shell.run("paint", file)
+end
+
+function worm()
+	cleanScreen()
+	shell.run("worm")
+end
+
+function adventure()
+	cleanScreen()
+	shell.run("adventure")
+end
+
+function addotherwindow()
+	makeWindow(10, 6, "Testing", 2, 10)
 end
 
 ----------------
 -- Population --
 ----------------
 
-addMenu("Exit", quit)
-addMenu("Shutdown", os.shutdown)
-addMenu("Restart", os.reboot)
-addMenu("Lua", lua)
-addMenu("Edit", edit)
-addMenu("Paint", paint)
+addVoid("Exit", quit)
+addVoid("Shutdown", os.shutdown)
+addVoid("Restart", os.reboot)
 
-function addotherwindow()
-	makeWindow(10, 6, "Testing", 2, 10)
-end
+programs = addMenu("Programs")
+games = addMenu("Games")
+testing = addMenu("Testing")
 
-addMenu("Add window", addotherwindow)
+addMenuItem("Lua", programs, lua)
+addMenuItem("Edit", programs, edit)
+addMenuItem("Paint", programs, paint)
+addMenuItem("Worm", games, worm)
+addMenuItem("Adventure", games, adventure)
+addMenuItem("Add window", testing, addotherwindow)
 
 ----------------
 ----- Run ------
