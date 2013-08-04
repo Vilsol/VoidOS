@@ -8,7 +8,7 @@ end
 
 downloadFile("/void/void", "https://raw.github.com/Vilsol/VoidOS/master/void/void")
 downloadFile("/void/wall", "https://raw.github.com/Vilsol/VoidOS/master/void/wall")
-downloadFile("/void/version", "https://raw.github.com/Vilsol/VoidOS/master/void/version")
+downloadFile("/void/version", "https://raw.github.com/Vilsol/VoidOS/master/version")
 downloadFile("/startup", "https://raw.github.com/Vilsol/VoidOS/master/startup")
 
 os.reboot()
