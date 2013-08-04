@@ -17,7 +17,7 @@ textBoxOn = false
 function checkUpdate()
 	versionFile = fs.open("/void/version", "r")
 	currentVersion = tonumber(versionFile.readLine())
-	newVersion = tonumber(http.get("https://raw.github.com/Vilsol/VoidOS/master/version").readAll())
+	newVersion = tonumber(http.get("https://raw.github.com/Vilsol/VoidOS/master/void/version").readAll())
 	if(newVersion > currentVersion)then
 		return true
 	end
