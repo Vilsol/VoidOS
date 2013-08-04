@@ -16,8 +16,6 @@ textBoxOn = false
 
 function drawWallpaper()
 	paintutils.drawImage(wall, 11, 6)
-	games = paintutils.loadImage("/games")
-	paintutils.drawImage(games, 2, 2)
 end
 
 function makeWindow(width, height, name, xPos, yPos)
@@ -201,8 +199,6 @@ function drawScreen()
 	term.setBackgroundColor(colors.black)
 	drawTaskBar()
 	term.setBackgroundColor(colors.black)
-	drawClock()
-	term.setBackgroundColor(colors.black)
 end
 
 function deleteWindow(id)
@@ -309,12 +305,12 @@ function textBox(question)
 end
 
 function loop()
-	drawScreen()
 	while true do
 		if(deleteWindowid > 0)then 
 			deleteWindow(deleteWindowid)
 			deleteWindowid = 0 
 		end
+		drawScreen()
 		event, button, xPos, yPos = os.pullEvent()
 		w, h = term.getSize()
 		if event == "mouse_click" or event == "monitor_touch" then
@@ -332,50 +328,14 @@ function loop()
 				checkIcons()
 			end
 			lastclick = os.clock()
-			drawScreen()
 		end
 		if event == "mouse_drag" then
 			if(pressed > 0)then
 				windows[pressed]['xPos'] = xPos - grabx
 				if(yPos < h)then windows[pressed]['yPos'] = yPos end
-				drawScreen()
-			end
-		end
-		if event == "alarm" then
-			drawClock()
-			if(os.time() == 0)then
-				drawScreen()
 			end
 		end
 	end
-end
-
-function drawClock()
-	w, h = term.getSize()
-	term.setTextColor(colors.cyan)
-	term.setBackgroundColor(colors.orange)
-	tims = textutils.formatTime(os.time(), true)
-	negative = string.len(tims .. "") - 1
-	term.setCursorPos(w - negative, h)
-	term.write(tims)
-	term.setBackgroundColor(colors.black)
-	term.setTextColor(colors.white)
-end
-
-function clocky()
-	while true do
-		time = os.time()
-		if(time < 23.99) then
-			os.setAlarm(time + 0.01)
-		else
-			os.setAlarm(0)
-		end
-		sleep(0.1)
-	end
-end
-
-function run()
-	parallel.waitForAny(clocky, loop)
 end
 
 function quit()
@@ -401,11 +361,6 @@ function edit()
 	shell.run("edit", file)
 end
 
-function paint()
-	file = textBox("Enter file name:")
-	shell.run("paint", file)
-end
-
 ----------------
 -- Population --
 ----------------
@@ -413,9 +368,8 @@ end
 addMenu("Exit", quit)
 addMenu("Shutdown", os.shutdown)
 addMenu("Restart", os.reboot)
-addMenu("Lua", lua)
+addMenu("LUA", lua)
 addMenu("Edit", edit)
-addMenu("Paint", paint)
 
 function addotherwindow()
 	makeWindow(10, 6, "Testing", 2, 10)
@@ -427,4 +381,4 @@ addMenu("Add window", addotherwindow)
 ----- Run ------
 ----------------
 
-run()
+loop()
