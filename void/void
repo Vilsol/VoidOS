@@ -393,7 +393,11 @@ function run()
 		update = read()
 	end
 	if(update == "Yes" or update == "yes" or update == "Y" or update == "y")then
-		shell.run("/install")
+		fs.delete("startup")
+		file = assert(io.open("/startup", "w"))
+		file:write("shell.run('install')")
+		file:close()
+		os.reboot()
 	else
 		parallel.waitForAny(clocky, loop)
 	end
