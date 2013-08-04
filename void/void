@@ -15,9 +15,9 @@ order = {}
 textBoxOn = false
 
 function checkUpdate()
-	versionFile = fs.open("version", "r")
+	versionFile = fs.open("/void/version", "r")
 	currentVersion = tonumber(versionFile.readLine())
-	newVersion = tonumber(http.get("https://raw.github.com/Vilsol/VoidOS/master/void/version").readAll())
+	newVersion = tonumber(http.get("https://raw.github.com/Vilsol/VoidOS/master/version").readAll())
 	if(newVersion > currentVersion)then
 		return true
 	end
@@ -383,13 +383,16 @@ function clocky()
 end
 
 function run()
+	term.clear()
+	term.setCursorPos(1,1)
+	print("Checking for updates...")
 	if(checkUpdate())then
 		print("An update has been detected!")
 		print("Would you like to update? (Yes/No)")
 		write("> ")
 		update = read()
 	end
-	if(update == "Yes" or update == "yes" || update == "Y" || update == "y")then
+	if(update == "Yes" or update == "yes" or update == "Y" or update == "y")then
 		shell.run("/install")
 	else
 		parallel.waitForAny(clocky, loop)
