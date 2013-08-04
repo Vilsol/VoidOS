@@ -14,6 +14,16 @@ menuid = 1
 order = {}
 textBoxOn = false
 
+function checkUpdate()
+	versionFile = fs.open("version", "r")
+	currentVersion = tonumber(versionFile.readLine())
+	newVersion = tonumber(http.get("https://raw.github.com/Vilsol/VoidOS/master/void/version").readAll())
+	if(newVersion > currentVersion)then
+		return true
+	end
+	return false
+end
+
 function drawWallpaper()
 	paintutils.drawImage(wall, 11, 6)
 end
@@ -373,7 +383,17 @@ function clocky()
 end
 
 function run()
-	parallel.waitForAny(clocky, loop)
+	if(checkUpdate())then
+		print("An update has been detected!")
+		print("Would you like to update? (Yes/No)")
+		write("> ")
+		update = read()
+	end
+	if(update == "Yes" or update == "yes" || update == "Y" || update == "y")then
+		shell.run("/install")
+	else
+		parallel.waitForAny(clocky, loop)
+	end
 end
 
 function quit()
