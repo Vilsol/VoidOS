@@ -1,0 +1,13 @@
+function downloadFile(path, url)
+	print("Downloading: " .. url)
+	data = http.get(url).readAll()
+	file = assert(io.open(path, "w"))
+	file:write(data)
+	file:close()
+end
+
+downloadFile("/void/void", "https://raw.github.com/Vilsol/VoidOS/master/void/void")
+downloadFile("/void/wall", "https://raw.github.com/Vilsol/VoidOS/master/void/wall")
+downloadFile("/startup", "https://raw.github.com/Vilsol/VoidOS/master/startup")
+
+os.reboot()
