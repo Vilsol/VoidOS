@@ -6,6 +6,9 @@ function downloadFile(path, url)
 	file:close()
 end
 
+fs.makeDir("/void/icons")
+fs.makeDir("/void/icons/programs")
+
 downloadFile("/void/void", "https://raw.github.com/Vilsol/VoidOS/master/void/void")
 downloadFile("/void/wall", "https://raw.github.com/Vilsol/VoidOS/master/void/wall")
 downloadFile("/void/version", "https://raw.github.com/Vilsol/VoidOS/master/void/version")
