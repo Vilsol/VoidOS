@@ -9,6 +9,8 @@ end
 downloadFile("/void/void", "https://raw.github.com/Vilsol/VoidOS/master/void/void")
 downloadFile("/void/wall", "https://raw.github.com/Vilsol/VoidOS/master/void/wall")
 downloadFile("/void/version", "https://raw.github.com/Vilsol/VoidOS/master/void/version")
+downloadFile("/void/icons/Switch", "https://raw.github.com/Vilsol/VoidOS/master/void/icons/Switch")
+downloadFile("/void/icons/programs/Switch", "https://raw.github.com/Vilsol/VoidOS/master/void/icons/programs/Switch")
 downloadFile("/startup", "https://raw.github.com/Vilsol/VoidOS/master/startup")
 
 os.reboot()

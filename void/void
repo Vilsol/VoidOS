@@ -1,6 +1,6 @@
 wall = paintutils.loadImage("/void/wall")
 lastclick = os.clock()
-pressed = false
+pressed = 0
 posx = 0
 grabx = 0
 windows = {}
@@ -20,6 +20,11 @@ menuiID = 1
 currentMenuPos = 1
 selectedMenu = -1
 flashMenuItemID = -1
+disableLoop = false
+icons = {}
+iconid = 1
+rightclick = {}
+rightclick['active'] = false
 
 function checkUpdate()
 	versionFile = fs.open("/void/version", "r")
@@ -216,6 +221,8 @@ function drawScreen()
 	term.setBackgroundColor(colors.black)
 	drawWallpaper()
 	term.setBackgroundColor(colors.black)
+	drawIcons()
+	term.setBackgroundColor(colors.black)
 	drawWindows()
 	term.setBackgroundColor(colors.black)
 	drawMenus()
@@ -276,30 +283,6 @@ function activateMenu(id)
 	voids[id]['func']()
 end
 
------------
--- Icons --
------------
-
-function makeIcon()
-	-- Todo
-end
-
-function loadIcons()
-	-- Todo
-end
-
-function drawIcon(id)
-	-- Todo
-end
-
-function drawIcons()
-	-- Todo
-end
-
-function checkIcons()
-	-- Todo
-end
-
 function textBox(question)
 	if textBoxOn == false then
 		w, h = term.getSize()
@@ -331,6 +314,150 @@ function textBox(question)
 	else
 		return false
 	end
+end
+
+-----------
+-- Icons --
+-----------
+
+function addIcon()
+	name = textBox("Enter icon name:")
+	filename = string.gsub(name, " ", "_")
+	icon = makeIcon(name)
+	cleanScreen()
+	print("Please draw an icon at top left corner!")
+	print("The max size is 6x5! Do not draw bigger!")
+	sleep(5)
+	shell.run("paint", "/void/icons/" .. filename)
+	if(not fs.exists("/void/icons/programs/"))then fs.makeDir("/void/icons/programs") end
+	if(not fs.exists("/void/icons/programs/" .. filename))then
+		file = assert(io.open("/void/icons/programs/" .. filename, "w"))
+		file:write("")
+		file:close()
+	end
+	cleanScreen()
+	print("Now you can edit your program!")
+	sleep(2)
+	shell.run("edit", "/void/icons/programs/" .. filename)
+end
+
+function makeIcon(name)
+	icons[iconid] = {}
+	icons[iconid]["name"] = name
+	iconid = iconid + 1
+	return iconid - 1
+end
+
+function loadIcons()
+	local FileList = fs.list("/void/icons")
+	for _, file in ipairs(FileList) do
+		if fs.isDir("/void/icons/" .. file) == false then
+			name = string.gsub(file, "_", " ")
+			makeIcon(name)
+		end
+	end
+end
+
+function drawIcon(id, x, y)
+	if x > 1 then x = x * 5 + 2 else x = 2 end
+	if y == 1 then y = 3
+	elseif y == 2 then y = 11 end
+	filename = string.gsub(icons[id]['name'], " ", "_")
+	icon = paintutils.loadImage("/void/icons/" .. filename)
+	paintutils.drawImage(icon, x, y)
+	icons[id]['x'] = x
+	icons[id]['y'] = y
+	term.setCursorPos(x, y + 6)
+	term.setBackgroundColor(colors.black)
+	term.write(icons[id]['name'])
+end
+
+function drawIcons()
+	x = 1
+	y = 1
+	if next(icons) == nil then else
+		term.setBackgroundColor(colors.black)
+		for id, data in pairs(icons) do
+			drawIcon(id, x, y)
+			if y == 2 then
+				y = 1
+				x = x + 1
+			else
+				y = y + 1
+			end
+		end
+		term.setBackgroundColor(colors.black)
+	end
+end
+
+function checkIcons(left, xPos, yPos)
+	if(table.getn(icons))then
+		for id, data in pairs(icons) do
+			if xPos >= data['x'] and xPos <= data['x'] + 5 then
+				if yPos >= data['y'] and yPos <= data['y'] + 6 then
+					if(left)then
+						clickIcon(id)
+					else
+						rightclick['active'] = true
+						rightclick['id'] = id
+						rightclick['x'] = xPos
+						rightclick['y'] = yPos
+						iconRight()
+					end
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+
+function iconRight()
+	w, h = term.getSize()
+	if h - rightclick['y'] < 4 then
+		rightclick['y'] = rightclick['y'] - (4 - (h - rightclick['y']))
+	end
+	drawScreen()
+	term.setBackgroundColor(colors.white)
+	term.setTextColor(colors.black)
+	term.setCursorPos(rightclick['x'], rightclick['y'])
+	term.write("Edit icon   ")
+	term.setCursorPos(rightclick['x'], rightclick['y'] + 1)
+	term.write("Edit name   ")
+	term.setCursorPos(rightclick['x'], rightclick['y'] + 2)
+	term.write("Edit program")
+	term.setCursorPos(rightclick['x'], rightclick['y'] + 3)
+	term.write("Delete      ")
+end
+
+function editIcon(id)
+	filename = string.gsub(icons[id]['name'], " ", "_")
+	shell.run("paint", "/void/icons/" .. filename)
+end
+
+function renameIcon(id)
+	name = textBox("Enter icon name:")
+	oldfilename = string.gsub(icons[id]['name'], " ", "_")
+	filename = string.gsub(name, " ", "_")
+	fs.move("/void/icons/programs/" .. oldfilename, "/void/icons/programs/" .. filename)
+	fs.move("/void/icons/" .. oldfilename, "/void/icons/" .. filename)
+	icons[id]['name'] = name
+end
+
+function editIconProgram(id)
+	filename = string.gsub(icons[id]['name'], " ", "_")
+	shell.run("edit", "/void/icons/programs/" .. filename)
+end
+
+function deleteIcon(id)
+	oldfilename = string.gsub(icons[id]['name'], " ", "_")
+	fs.delete("/void/icons/programs/" .. oldfilename)
+	fs.delete("/void/icons/" .. oldfilename)
+	icons[id] = nil
+end
+
+function clickIcon(id)
+	shell.run("/void/icons/programs/" .. string.gsub(icons[id]['name'], " ", "_"))
 end
 
 ----------------
@@ -491,23 +618,40 @@ function loop()
 		event, button, xPos, yPos = os.pullEvent()
 		w, h = term.getSize()
 		if event == "mouse_click" or event == "monitor_touch" then
-			check = 0
-			if(checkTaskBar(xPos, yPos) == false)then
-				if(checkMenus(xPos, yPos) == false)then
-					check = checkWindows(xPos, yPos)
+			righttrue = false
+			if rightclick['active'] == true then
+				if xPos >= rightclick['x'] and xPos <= rightclick['x'] + 11 then
+					if yPos >= rightclick['y'] and yPos <= rightclick['y'] + 3 then
+						if yPos == rightclick['y'] then	editIcon(rightclick['id']) end
+						if yPos == rightclick['y'] + 1 then	renameIcon(rightclick['id']) end
+						if yPos == rightclick['y'] + 2 then	editIconProgram(rightclick['id']) end
+						if yPos == rightclick['y'] + 3 then	deleteIcon(rightclick['id']) end
+						drawScreen()
+					end
 				end
 			end
-			if(check > 0)then
-				pressed = check
-				grabx = xPos - windows[pressed]['xPos']
+			rightclick['active'] = false
+			if button == 1 then
+				check = 0
+				if(checkTaskBar(xPos, yPos) == false)then
+					if(checkMenus(xPos, yPos) == false)then
+						check = checkWindows(xPos, yPos)
+					end
+				end
+				if(check > 0)then
+					pressed = check
+					grabx = xPos - windows[pressed]['xPos']
+				else
+					pressed = 0
+				end
+				if(os.clock() - lastclick >= .05 and os.clock() - lastclick <= 0.5)then
+					checkIcons(true, xPos, yPos)
+				end
+				lastclick = os.clock()
+				drawScreen()
 			else
-				pressed = 0
+				checkIcons(false, xPos, yPos)
 			end
-			if(os.clock() - lastclick >= .05 and os.clock() - lastclick <= 0.5)then
-				checkIcons()
-			end
-			lastclick = os.clock()
-			drawScreen()
 		end
 		if event == "mouse_drag" then
 			if(pressed > 0)then
@@ -566,6 +710,7 @@ function run()
 		file:close()
 		os.reboot()
 	else
+		loadIcons()
 		parallel.waitForAny(clocky, loop)
 	end
 end
@@ -616,7 +761,8 @@ function adventure()
 end
 
 function addotherwindow()
-	makeWindow(10, 6, "Testing", 2, 10)
+	name = textBox("Enter window name:")
+	makeWindow(15, 8, name, 2, 3)
 	cleanScreen()
 end
 
@@ -630,14 +776,15 @@ addVoid("Restart", os.reboot)
 
 programs = addMenu("Programs")
 games = addMenu("Games")
-testing = addMenu("Testing")
+sys = addMenu("System")
 
 addMenuItem("Lua", programs, lua)
 addMenuItem("Edit", programs, edit)
 addMenuItem("Paint", programs, paint)
 addMenuItem("Worm", games, worm)
 addMenuItem("Adventure", games, adventure)
-addMenuItem("Add window", testing, addotherwindow)
+addMenuItem("Add window", sys, addotherwindow)
+addMenuItem("Add icon", sys, addIcon)
 
 ----------------
 ----- Run ------
