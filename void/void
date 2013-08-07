@@ -23,8 +23,11 @@ flashMenuItemID = -1
 disableLoop = false
 icons = {}
 iconid = 1
-rightclick = {}
-rightclick['active'] = false
+rClick = {}
+rClick['active'] = false
+rClick['width'] = 0
+rClickItems  = {}
+rItemID = 1
 
 function checkUpdate()
 	versionFile = fs.open("/void/version", "r")
@@ -41,7 +44,7 @@ end
 --------------------------
 
 function drawWallpaper()
-	paintutils.drawImage(wall, 11, 6)
+	paintutils.drawImage(wall, 1, 1)
 end
 
 function makeWindow(width, height, name, xPos, yPos)
@@ -100,7 +103,7 @@ function drawWindow(id)
 end
 
 function drawWindows()
-	if next(windows) == nil then else
+	if table.getn(windows) == nil then else
 		term.setBackgroundColor(colors.black)
 		for oid, idm in pairs(order) do
 			drawWindow(idm)
@@ -316,6 +319,106 @@ function textBox(question)
 	end
 end
 
+----------------
+-- RightClick --
+----------------
+
+function rClearItems()
+	rItemID = 1
+	rClickItems = {}
+end
+
+function rClickReset()
+	rClick = {}
+	rClick['active'] = false
+	rClick['width'] = 0
+	rClearItems()
+end
+
+function rAddItem(name, func)
+	rClickItems[rItemID] = {}
+	rClickItems[rItemID]['name'] = name
+	rClickItems[rItemID]['func'] = func
+	rItemID = rItemID + 1
+	if(string.len(name) > rClick['width'])then
+		rClick['width'] = string.len(name)
+	end
+	return rItemID - 1
+end
+
+function rClickCheck(xPos, yPos)
+	if(rClick['active'])then
+		if(table.getn(rClickItems))then
+			items = table.getn(rClickItems)
+			addition = 0
+			for id, data in pairs(rClickItems) do
+				if(xPos >= rClick['x'] and xPos <= rClick['x'] + rClick['width'] - 1)then
+					if(yPos == rClick['y'] + addition)then
+						rClickItem(id)
+						return id
+					end
+				end
+				addition = addition + 1
+			end
+		end
+	end
+	return false
+end
+
+function rClickDraw()
+	if(rClick['active'])then
+		if(table.getn(rClickItems))then
+			drawScreen()
+			w, h = term.getSize()
+			items = table.getn(rClickItems)
+			if h - rClick['y'] < items then
+				rClick['y'] = rClick['y'] - (items - (h - rClick['y']))
+			end
+			if w - rClick['x'] < rClick['width'] then
+				rClick['x'] = rClick['x'] - (rClick['width'] - (w - rClick['x']))
+			end
+			term.setBackgroundColor(colors.white)
+			term.setTextColor(colors.black)
+			for x = rClick['x'], rClick['x'] + rClick['width'] - 1 do
+				for y = rClick['y'], rClick['y'] + items - 1 do
+					term.setCursorPos(x, y)
+					term.write(" ")
+				end
+			end
+			addition = 0
+			for id, data in pairs(rClickItems) do
+				term.setCursorPos(rClick['x'], rClick['y'] + addition)
+				term.write(data['name'])
+				addition = addition + 1
+			end
+		end
+	end
+end
+
+function rClickItem(ID)
+	rClickItems[ID]['func']()
+end
+
+-------------
+-- Desktop --
+-------------
+
+function checkDestktop(xPos, yPos)
+	w, h = term.getSize()
+	if yPos >= 2 and yPos <= h - 1 then
+		rClickReset()
+		rClick['active'] = true
+		rClick['x'] = xPos
+		rClick['y'] = yPos
+		rAddItem("Edit wallpaper", editWallpaper)
+	end
+end
+
+function editWallpaper()
+	shell.run("paint", "/void/wall")
+	wall = paintutils.loadImage("/void/wall")
+end
+
 -----------
 -- Icons --
 -----------
@@ -375,7 +478,7 @@ end
 function drawIcons()
 	x = 1
 	y = 1
-	if next(icons) == nil then else
+	if table.getn(icons) == nil then else
 		term.setBackgroundColor(colors.black)
 		for id, data in pairs(icons) do
 			drawIcon(id, x, y)
@@ -398,11 +501,15 @@ function checkIcons(left, xPos, yPos)
 					if(left)then
 						clickIcon(id)
 					else
-						rightclick['active'] = true
-						rightclick['id'] = id
-						rightclick['x'] = xPos
-						rightclick['y'] = yPos
-						iconRight()
+						rClickReset()
+						rClick['active'] = true
+						rClick['id'] = id
+						rClick['x'] = xPos
+						rClick['y'] = yPos
+						rAddItem("Edit icon", editIcon)
+						rAddItem("Edit name", renameIcon)
+						rAddItem("Edit program", editIconProgram)
+						rAddItem("Delete", deleteIcon)
 					end
 					return true
 				end
@@ -412,30 +519,14 @@ function checkIcons(left, xPos, yPos)
 	return false
 end
 
-function iconRight()
-	w, h = term.getSize()
-	if h - rightclick['y'] < 4 then
-		rightclick['y'] = rightclick['y'] - (4 - (h - rightclick['y']))
-	end
-	drawScreen()
-	term.setBackgroundColor(colors.white)
-	term.setTextColor(colors.black)
-	term.setCursorPos(rightclick['x'], rightclick['y'])
-	term.write("Edit icon   ")
-	term.setCursorPos(rightclick['x'], rightclick['y'] + 1)
-	term.write("Edit name   ")
-	term.setCursorPos(rightclick['x'], rightclick['y'] + 2)
-	term.write("Edit program")
-	term.setCursorPos(rightclick['x'], rightclick['y'] + 3)
-	term.write("Delete      ")
-end
-
 function editIcon(id)
+	if(id == nil)then id = rClick['id'] end
 	filename = string.gsub(icons[id]['name'], " ", "_")
 	shell.run("paint", "/void/icons/" .. filename)
 end
 
 function renameIcon(id)
+	if(id == nil)then id = rClick['id'] end
 	name = textBox("Enter icon name:")
 	oldfilename = string.gsub(icons[id]['name'], " ", "_")
 	filename = string.gsub(name, " ", "_")
@@ -445,11 +536,13 @@ function renameIcon(id)
 end
 
 function editIconProgram(id)
+	if(id == nil)then id = rClick['id'] end
 	filename = string.gsub(icons[id]['name'], " ", "_")
 	shell.run("edit", "/void/icons/programs/" .. filename)
 end
 
 function deleteIcon(id)
+	if(id == nil)then id = rClick['id'] end
 	oldfilename = string.gsub(icons[id]['name'], " ", "_")
 	fs.delete("/void/icons/programs/" .. oldfilename)
 	fs.delete("/void/icons/" .. oldfilename)
@@ -457,6 +550,7 @@ function deleteIcon(id)
 end
 
 function clickIcon(id)
+	if(id == nil)then id = rClick['id'] end
 	shell.run("/void/icons/programs/" .. string.gsub(icons[id]['name'], " ", "_"))
 end
 
@@ -618,39 +712,32 @@ function loop()
 		event, button, xPos, yPos = os.pullEvent()
 		w, h = term.getSize()
 		if event == "mouse_click" or event == "monitor_touch" then
-			righttrue = false
-			if rightclick['active'] == true then
-				if xPos >= rightclick['x'] and xPos <= rightclick['x'] + 11 then
-					if yPos >= rightclick['y'] and yPos <= rightclick['y'] + 3 then
-						if yPos == rightclick['y'] then	editIcon(rightclick['id']) end
-						if yPos == rightclick['y'] + 1 then	renameIcon(rightclick['id']) end
-						if yPos == rightclick['y'] + 2 then	editIconProgram(rightclick['id']) end
-						if yPos == rightclick['y'] + 3 then	deleteIcon(rightclick['id']) end
-						drawScreen()
-					end
-				end
-			end
-			rightclick['active'] = false
 			if button == 1 then
-				check = 0
-				if(checkTaskBar(xPos, yPos) == false)then
-					if(checkMenus(xPos, yPos) == false)then
-						check = checkWindows(xPos, yPos)
+				if(not rClickCheck(xPos, yPos))then
+					rClickReset()
+					check = 0
+					if(checkTaskBar(xPos, yPos) == false)then
+						if(checkMenus(xPos, yPos) == false)then
+							check = checkWindows(xPos, yPos)
+						end
 					end
+					if(check > 0)then
+						pressed = check
+						grabx = xPos - windows[pressed]['xPos']
+					else
+						pressed = 0
+					end
+					if(os.clock() - lastclick >= .05 and os.clock() - lastclick <= 0.5)then
+						checkIcons(true, xPos, yPos)
+					end
+					lastclick = os.clock()
 				end
-				if(check > 0)then
-					pressed = check
-					grabx = xPos - windows[pressed]['xPos']
-				else
-					pressed = 0
-				end
-				if(os.clock() - lastclick >= .05 and os.clock() - lastclick <= 0.5)then
-					checkIcons(true, xPos, yPos)
-				end
-				lastclick = os.clock()
 				drawScreen()
 			else
-				checkIcons(false, xPos, yPos)
+				if(not checkIcons(false, xPos, yPos))then
+					checkDestktop(xPos, yPos)
+				end
+				rClickDraw()
 			end
 		end
 		if event == "mouse_drag" then
