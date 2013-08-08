@@ -470,9 +470,16 @@ function drawIcon(id, x, y)
 	paintutils.drawImage(icon, x, y)
 	icons[id]['x'] = x
 	icons[id]['y'] = y
-	term.setCursorPos(x, y + 6)
 	term.setBackgroundColor(colors.black)
-	term.write(icons[id]['name'])
+	if(string.len(icons[id]['name']) > 6)then
+		term.setCursorPos(x, y + 5)
+		term.write(string.sub(icons[id]['name'], 1, 6))
+		term.setCursorPos(x, y + 6)
+		term.write(string.sub(icons[id]['name'], 7))
+	else
+		term.setCursorPos(x, y + 6)
+		term.write(icons[id]['name'])
+	end
 end
 
 function drawIcons()
