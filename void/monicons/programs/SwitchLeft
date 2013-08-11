@@ -1,0 +1,5 @@
+if(redstone.getOutput("left") == true)then
+  redstone.setOutput("left", false)
+else
+  redstone.setOutput("left", true)
+end

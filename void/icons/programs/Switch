@@ -1,7 +1,7 @@
 -- This is example program
 -- It will switch between redstone states
 
-if(redstone.getInput("right"))then
+if(redstone.getOutput("right"))then
   redstone.setOutput("right", false)
 else
   redstone.setOutput("right", true)

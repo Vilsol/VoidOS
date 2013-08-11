@@ -23,16 +23,21 @@ flashMenuItemID = -1
 disableLoop = false
 icons = {}
 iconid = 1
+monicons = {}
+moniconid = 1
 rClick = {}
 rClick['active'] = false
 rClick['width'] = 0
 rClickItems  = {}
 rItemID = 1
+monitorside = ""
+monitor = ""
 
 function checkUpdate()
 	versionFile = fs.open("/void/version", "r")
 	currentVersion = tonumber(versionFile.readLine())
 	newVersion = tonumber(http.get("https://raw.github.com/Vilsol/VoidOS/master/void/version").readAll())
+	versionFile.close()
 	if(newVersion > currentVersion)then
 		return true
 	end
@@ -286,28 +291,80 @@ function activateMenu(id)
 	voids[id]['func']()
 end
 
-function textBox(question)
+function message(message, second)
+	width = string.len(message) + 2
+	start = w / 2 - width / 2
+	height = 2
+	if second ~= nil then
+		height = 3
+		if(string.len(second) + 2 > width)then
+			width = string.len(second) + 2
+		end
+	end
+	term.setBackgroundColor(colors.lightGray)
+	term.setTextColor(colors.orange)
+	for x = start, start + width - 1 do
+		for y = 5, 5 + height do
+			term.setCursorPos(x, y)
+			term.write(" ")
+		end
+	end
+	fls = w / 2 - (string.len(message) + 2) / 2 + 1
+	term.setCursorPos(fls, 6)
+	term.write(message)
+	if second ~= nil then
+		sls = w / 2 - (string.len(second) + 2) / 2 + 1
+		term.setCursorPos(sls, 7)
+		term.write(second)
+	end
+end
+
+function textBox(question, correction, second)
 	if textBoxOn == false then
 		w, h = term.getSize()
 		textBoxOn = true
 		term.setBackgroundColor(colors.lightGray)
 		term.setTextColor(colors.orange)
 		width = string.len(question) + 2
+		height = 4
+		if(second ~= nil)then
+			height = 5
+			if(string.len(second) + 2 > width)then
+				width = string.len(second) + 2
+			end
+		end
 		start = w / 2 - width / 2
+		fls = w / 2 - (string.len(question) + 2) / 2
+		if(correction ~= nil)then
+			start = start + correction
+		end
 		for x = start, start + width - 1 do
-			for y = 5, 9 do
+			for y = 5, 5 + height do
 				term.setCursorPos(x, y)
 				term.write(" ")
 			end
 		end
-		term.setCursorPos(start + 1, 6)
+		term.setCursorPos(fls + 1, 6)
 		term.write(question)
+		if(second ~= nil)then
+			newstart = w / 2 - string.len(second) / 2
+			term.setCursorPos(newstart + 1, 7)
+			term.write(second)
+		end
 		for x = start + 1, start + width - 2 do
 			term.setBackgroundColor(colors.white)
-			term.setCursorPos(x, 8)
+			if(height == 5)then
+				term.setCursorPos(x, 9)
+			else
+				term.setCursorPos(x, 8)
+			end
 			term.write(" ")
 		end
-		term.setCursorPos(start + 1, 8)
+		if(height == 5)then
+			term.setCursorPos(start + 1, 9)
+		else
+			term.setCursorPos(start + 1, 8)
+		end
 		term.setCursorBlink(true)
 		answer = read()
 		term.setCursorBlink(false)
@@ -417,6 +474,239 @@ end
 function editWallpaper()
 	shell.run("paint", "/void/wall")
 	wall = paintutils.loadImage("/void/wall")
+end
+
+--------------
+-- MonIcons --
+--------------
+
+function findModem()
+	sides = {"left", "right", "top", "bottom", "front", "back"}
+	for x = 1, #sides do
+		if(peripheral.getType(sides[x]) == "modem")then
+			return sides[x]
+		end
+	end
+	return false
+end
+
+function detectMonitors()
+	sides = {"left", "right", "top", "bottom", "front", "back"}
+	available = {}
+	counter = 1
+	for x = 1, #sides do
+		if(peripheral.getType(sides[x]) == "monitor")then
+			available[counter] = sides[x]
+			counter = counter + 1
+		end
+	end
+	if(findModem())then
+		p = peripheral.wrap(findModem())
+		for id, name in pairs(p.getNamesRemote())do
+			if(p.getTypeRemote(name) == "monitor")then
+				available[counter] = name
+				counter = counter + 1
+			end
+		end
+	end
+	for y = 1, #available do
+		mon = peripheral.wrap(available[y])
+		mon.clear()
+		mon.setCursorPos(1,1)
+		w, h = mon.getSize()
+		if(w > 7)then
+			mon.write(available[y])
+		else
+			mon.write(string.sub(available[y], 1, 7))
+			mon.setCursorPos(1, 2)
+			mon.write(string.sub(available[y], 8))
+		end
+	end
+end
+
+function checkMonitor()
+	if(peripheral.wrap(monitorside))then
+		monitor = peripheral.wrap(monitorside)
+		return true
+	end
+	if(findModem())then
+		p = peripheral.wrap(findModem())
+		if(p.isPresentRemote(monitorside))then
+			monitor = peripheral.wrap(monitorside)
+			return true
+		end
+	end
+	return false
+end
+
+function loadMonitor()
+	if fs.exists("/void/monitorside") then
+		file = fs.open("/void/monitorside", "r")
+		monitorside = file.readLine()
+		file.close()
+		return true
+	end
+	return false
+end
+
+function loadMonIcons()
+	local FileList = fs.list("/void/monicons")
+	for _, file in ipairs(FileList) do
+		if fs.isDir("/void/monicons/" .. file) == false then
+			name = string.gsub(file, "_", " ")
+			makeMonIcon(name)
+		end
+	end
+end
+
+function drawMonIcon(id, x, y)
+	filename = string.gsub(monicons[id]['name'], " ", "_")
+	icon = paintutils.loadImage("/void/monicons/" .. filename)
+	for f = 1, #icon do
+		for g = 1, #icon[f] do
+			if(icon[f][g] > 0)then
+				monitor.setBackgroundColor(icon[f][g])
+				monitor.setCursorPos(x + g - 1, y + f - 1)
+				monitor.write(" ")
+			end
+		end
+	end
+	monicons[id]['x'] = x
+	monicons[id]['y'] = y
+	monitor.setBackgroundColor(colors.black)
+end
+
+function drawMonIcons()
+	x = 1
+	y = 1
+	w, h = monitor.getSize()
+	monitor.clear()
+	if table.getn(monicons) == nil then else
+		monitor.setBackgroundColor(colors.black)
+		for id, data in pairs(monicons) do
+			drawMonIcon(id, x, y)
+			if(y + 6 < h)then
+				y = y + 6
+			else
+				x = x + 8
+				y = 1
+			end
+		end
+		monitor.setBackgroundColor(colors.black)
+	end
+end
+
+function addMonIcon()
+	if not checkMonitor() then
+		detectMonitors()
+		monitorside = textBox("Monitor disconnected!", 1, "Enter new id or leave empty!")
+		while not checkMonitor() and monitorside ~= "" do
+			monitorside = textBox("Monitor disconnected!", 1, "Enter new id or leave empty!")
+		end
+		if(monitorside == "")then
+			fs.delete("/void/monitorside")
+			return false
+		else
+			file = fs.open("/void/monitorside", "w")
+			file.writeLine(monitorside)
+			file.close()
+		end
+	end
+	drawScreen()
+	name = textBox("Enter icon name:")
+	filename = string.gsub(name, " ", "_")
+	icon = makeMonIcon(name)
+	cleanScreen()
+	print("Please draw an icon at top left corner!")
+	print("The max size is 7x5! Do not draw bigger!")
+	sleep(5)
+	shell.run("paint", "/void/monicons/" .. filename)
+	if(not fs.exists("/void/monicons/programs/"))then fs.makeDir("/void/monicons/programs") end
+	if(not fs.exists("/void/monicons/programs/" .. filename))then
+		file = assert(io.open("/void/monicons/programs/" .. filename, "w"))
+		file:write("")
+		file:close()
+	end
+	cleanScreen()
+	print("Now you can edit your program!")
+	sleep(2)
+	shell.run("edit", "/void/monicons/programs/" .. filename)
+	drawMonIcons()
+end
+
+function makeMonIcon(name)
+	monicons[moniconid] = {}
+	monicons[moniconid]["name"] = name
+	moniconid = moniconid + 1
+	return moniconid - 1
+end
+
+function checkMonIcons(xPos, yPos, nostart)
+	if table.getn(monicons) then
+		for id, data in pairs(monicons) do
+			if(xPos >= data['x'] and xPos <= data['x'] + 6)then
+				if(yPos >= data['y'] and yPos <= data['y'] + 4)then
+					if nostart == nil then
+						clickMonIcon(id)
+					end
+					return id
+				end
+			end
+		end
+	end
+	return false
+end
+
+function clickMonIcon(id)
+	shell.run("/void/monicons/programs/" .. string.gsub(monicons[id]['name'], " ", "_"))
+end
+
+function monIconClickID()
+	event, variable, xPos, yPos = os.pullEvent("monitor_touch")
+	return checkMonIcons(xPos, yPos)
+end
+
+function editMonIcon(id)
+	filename = string.gsub(monicons[id]['name'], " ", "_")
+	shell.run("paint", "/void/monicons/" .. filename)
+	drawMonIcons()
+end
+
+function editMonIconProgram(id)
+	filename = string.gsub(monicons[id]['name'], " ", "_")
+	shell.run("edit", "/void/monicons/programs/" .. filename)
+end
+
+function deleteMonIcon(id)
+	oldfilename = string.gsub(monicons[id]['name'], " ", "_")
+	fs.delete("/void/monicons/programs/" .. oldfilename)
+	fs.delete("/void/monicons/" .. oldfilename)
+	monicons[id] = nil
+	drawMonIcons()
+end
+
+function editMonIconW()
+	message("Click the icon you want to edit!", "Click nowhere to cancel")
+	click = monIconClickID()
+	if(click)then
+		editMonIcon(click)
+	end
+end
+
+function editMonIconProgramW()
+	message("Click the icon you want to edit!", "Click nowhere to cancel")
+	click = monIconClickID()
+	if(click)then
+		editMonIconProgram(click)
+	end
+end
+
+function deleteMonIconW()
+	message("Click the icon you want to delete!", "Click nowhere to cancel")
+	click = monIconClickID()
+	if(click)then
+		deleteMonIcon(click)
+	end
 end
 
 -----------
@@ -678,6 +968,8 @@ function drawMenu(ID)
 		end
 	end
 	currentMenuPos = currentMenuPos + menu['width'] + 2
+	term.setBackgroundColor(colors.black)
+	term.setTextColor(colors.white)
 end
 
 function addMenu(text)
@@ -710,16 +1002,35 @@ end
 
 function loop()
 	drawScreen()
+		if(loadMonitor())then
+		if(not checkMonitor())then
+			detectMonitors()
+			while not checkMonitor() and monitorside ~= "" do
+				monitorside = textBox("Monitor disconnected!", 1, "Enter new id or leave empty!")
+			end
+			if(monitorside == "")then
+				fs.delete("/void/monitorside")
+			else
+				file = fs.open("/void/monitorside", "w")
+				file.writeLine(monitorside)
+				file.close()
+			end
+			drawScreen()
+		end
+	end
+	if(checkMonitor())then
+		drawMonIcons()
+	end
 	while true do
 		if(deleteWindowid > 0)then 
 			deleteWindow(deleteWindowid)
 			deleteWindowid = 0 
 			drawScreen()
 		end
-		event, button, xPos, yPos = os.pullEvent()
+		event, variable, xPos, yPos = os.pullEvent()
 		w, h = term.getSize()
-		if event == "mouse_click" or event == "monitor_touch" then
-			if button == 1 then
+		if event == "mouse_click" then
+			if variable == 1 then
 				if(not rClickCheck(xPos, yPos))then
 					rClickReset()
 					check = 0
@@ -745,6 +1056,11 @@ function loop()
 					checkDestktop(xPos, yPos)
 				end
 				rClickDraw()
+			end
+		end
+		if event == "monitor_touch" then
+			if variable == monitorside then
+				checkMonIcons(xPos, yPos)
 			end
 		end
 		if event == "mouse_drag" then
@@ -804,6 +1120,7 @@ function run()
 		os.reboot()
 	else
 		loadIcons()
+		loadMonIcons()
 		parallel.waitForAny(clocky, loop)
 	end
 end
@@ -870,6 +1187,7 @@ addVoid("Restart", os.reboot)
 programs = addMenu("Programs")
 games = addMenu("Games")
 sys = addMenu("System")
+monimenu = addMenu("Monicon")
 
 addMenuItem("Lua", programs, lua)
 addMenuItem("Edit", programs, edit)
@@ -878,6 +1196,10 @@ addMenuItem("Worm", games, worm)
 addMenuItem("Adventure", games, adventure)
 addMenuItem("Add window", sys, addotherwindow)
 addMenuItem("Add icon", sys, addIcon)
+addMenuItem("Add monicon", monimenu, addMonIcon)
+addMenuItem("Edit monicon", monimenu, editMonIconW)
+addMenuItem("Edit program", monimenu, editMonIconProgramW)
+addMenuItem("Delete monicon", monimenu, deleteMonIconW)
 
 ----------------
 ----- Run ------
