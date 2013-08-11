@@ -480,6 +480,22 @@ end
 -- MonIcons --
 --------------
 
+function changeMonitor()
+	detectMonitors()
+	monitorside = textBox("Enter new monitor ID!", 1, "Enter new id or leave empty!")
+	while not checkMonitor() and monitorside ~= "" do
+		monitorside = textBox("Enter new monitor ID!", 1, "Enter new id or leave empty!")
+	end
+	if(monitorside == "")then
+		fs.delete("/void/monitorside")
+	else
+		file = fs.open("/void/monitorside", "w")
+		file.writeLine(monitorside)
+		file.close()
+		drawMonIcons()
+	end
+end
+
 function findModem()
 	sides = {"left", "right", "top", "bottom", "front", "back"}
 	for x = 1, #sides do
@@ -1200,6 +1216,7 @@ addMenuItem("Add monicon", monimenu, addMonIcon)
 addMenuItem("Edit monicon", monimenu, editMonIconW)
 addMenuItem("Edit program", monimenu, editMonIconProgramW)
 addMenuItem("Delete monicon", monimenu, deleteMonIconW)
+addMenuItem("Change monitor", monimenu, changeMonitor)
 
 ----------------
 ----- Run ------
