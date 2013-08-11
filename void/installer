@@ -16,8 +16,8 @@ downloadFile("/void/wall", "https://raw.github.com/Vilsol/VoidOS/master/void/wal
 downloadFile("/void/version", "https://raw.github.com/Vilsol/VoidOS/master/void/version")
 downloadFile("/void/icons/Switch", "https://raw.github.com/Vilsol/VoidOS/master/void/icons/Switch")
 downloadFile("/void/icons/programs/Switch", "https://raw.github.com/Vilsol/VoidOS/master/void/icons/programs/Switch")
-downloadFile("/void/monicons/LeftSwitch", "https://raw.github.com/Vilsol/VoidOS/master/void/monicons/LeftSwitch")
-downloadFile("/void/monicons/programs/LeftSwitch", "https://raw.github.com/Vilsol/VoidOS/master/void/monicons/programs/LeftSwitch")
+downloadFile("/void/monicons/SwitchLeft", "https://raw.github.com/Vilsol/VoidOS/master/void/monicons/SwitchLeft")
+downloadFile("/void/monicons/programs/SwitchLeft", "https://raw.github.com/Vilsol/VoidOS/master/void/monicons/programs/SwitchLeft")
 downloadFile("/startup", "https://raw.github.com/Vilsol/VoidOS/master/startup")
 
 os.reboot()
